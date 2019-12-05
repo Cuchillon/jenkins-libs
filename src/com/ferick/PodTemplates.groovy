@@ -36,9 +36,17 @@ class PodTemplates implements Serializable {
 
     def helmTemplate(String secretName, Closure body) {
         steps.podTemplate(containers: [
-                steps.containerTemplate(name: 'helm', image: 'lwolf/helm-kubectl-docker', ttyEnabled: true, command: 'cat')],
+                steps.containerTemplate(name: 'helm', image: 'lwolf/helm-kubectl-docker:v1.16.2-v2.15.1', ttyEnabled: true, command: 'cat')],
                 volumes: [steps.secretVolume(mountPath: '/etc/helm-repo-certs', secretName: secretName)]
         ) {
+            body()
+        }
+    }
+
+    def gradleTemplate(String containerName, Closure body) {
+        steps.podTemplate(containers: [
+                steps.containerTemplate(name: containerName, image: 'gradle:4.3.1-jdk8', ttyEnabled: true, command: 'cat')
+        ]) {
             body()
         }
     }
