@@ -36,9 +36,7 @@ class Helm implements Serializable {
 
     private String getParamsAsString(Map overridingValues) {
         StringBuilder builder = new StringBuilder()
-        if (overridingValues.isEmpty()) {
-            return ''
-        } else {
+        if (!overridingValues.isEmpty()) {
             for (entry in overridingValues) {
                 builder.append("--set ${entry.key}=${entry.value} ")
             }
