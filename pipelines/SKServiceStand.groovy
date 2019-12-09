@@ -6,6 +6,7 @@ def runTests = new RunTests(this)
 def slaveTemplates = new PodTemplates(steps)
 def helm = new Helm(this)
 def buildContainer = 'build'
+def testContainer = 'test'
 
 properties([
         parameters([
@@ -31,6 +32,7 @@ timestamps {
                 container(buildContainer) {
                     stage('Source') {
                         git credentialsId: 'githubCreds', url: 'https://github.com/Cuchillon/sk-service.git'
+                        stash name: 'test-source', includes: 'settings.gradle, build.gradle, backend/**, testutils/sktester/**'
                         dir('database') {
                             stash name: 'dockerfile-database', includes: 'Dockerfile'
                         }
@@ -86,6 +88,30 @@ timestamps {
                             'backend.environment.license.agentAddress' : "${params.LICENSE_ADDRESS}"
                     ]
                     helm.helmDeploy(skRepo, skChart, params.CHART_VERSION, values)
+                }
+            }
+        }
+    }
+    slaveTemplates.gradleTemplate(testContainer) {
+        node(POD_LABEL) {
+            container(testContainer) {
+                stage('Testing') {
+                    unstash name: 'test-source'
+                    dir('testutils/sktester/src/main/resources') {
+                        sh '''sed -i '2 s/localhost/sk-backend-service.default.svc.cluster.local/g' local.properties \
+                          && sed -i '5 s/localhost/sk-postgres-service-ext.default.svc.cluster.local/g' local.properties \
+                          && sed -i '6 s/5435/5432/g' local.properties'''
+                    }
+                    dir('testutils/sktester') {
+                        try {
+                            sh 'gradle -PrunFunctionalTests test --tests ru.crystals.tests.api.orders*'
+                        } finally {
+                            runTests.publishHTMLReport(
+                                    'build/reports/tests/test',
+                                    'index.html',
+                                    'API testing results')
+                        }
+                    }
                 }
             }
         }
