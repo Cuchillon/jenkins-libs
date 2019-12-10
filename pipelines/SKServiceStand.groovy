@@ -104,7 +104,7 @@ timestamps {
                     }
                     dir('testutils/sktester') {
                         try {
-                            sh 'gradle -PrunFunctionalTests test --tests ru.crystals.tests.api.orders*'
+                            sh 'gradle -PrunFunctionalTests test --tests com.skservice.tests.api.orders*'
                         } finally {
                             runTests.publishHTMLReport(
                                     'build/reports/tests/test',
